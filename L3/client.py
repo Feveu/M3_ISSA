@@ -1,26 +1,18 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'client.ui'
-#
-# Created by: PyQt5 UI code generator 5.11.2
-#
-# WARNING! All changes made in this file will be lost!
-
 from PyQt5 import QtCore, QtGui, QtWidgets
 import socket
 import threading
-import sys, time
 
 HOST = 'localhost'
 PORT = 5005
 client = 0
 
-
-
 led0_flag = False
 led1_flag = False
 led2_flag = False
 led3_flag = False
+
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -67,11 +59,9 @@ class Ui_MainWindow(object):
         self.set_led2.setGeometry(QtCore.QRect(30, 390, 81, 31))
         self.set_led2.clicked.connect(self.set_led2_flags)
 
-
         self.set_led3 = QtWidgets.QPushButton(self.centralwidget)
         self.set_led3.setGeometry(QtCore.QRect(30, 430, 81, 31))
         self.set_led3.clicked.connect(self.set_led3_flags)
-
 
         self.led0_state = QtWidgets.QLabel(self.centralwidget)
         self.led0_state.setGeometry(QtCore.QRect(140, 313, 25, 25))
@@ -84,7 +74,7 @@ class Ui_MainWindow(object):
         self.led2_state = QtWidgets.QLabel(self.centralwidget)
         self.led2_state.setGeometry(QtCore.QRect(140, 393, 25, 25))
         self.led2_state.setVisible(False)
-        
+
         self.led3_state = QtWidgets.QLabel(self.centralwidget)
         self.led3_state.setGeometry(QtCore.QRect(140, 433, 25, 25))
         self.led3_state.setVisible(False)
@@ -100,20 +90,19 @@ class Ui_MainWindow(object):
 
         self.dtc1 = QtWidgets.QPushButton(self.centralwidget)
         self.dtc1.setGeometry(QtCore.QRect(460, 310, 81, 31))
-        self.dtc1.clicked.connect(lambda : self.get_dtc_state('01'))
+        self.dtc1.clicked.connect(lambda: self.get_dtc_state('01'))
 
         self.dtc2 = QtWidgets.QPushButton(self.centralwidget)
         self.dtc2.setGeometry(QtCore.QRect(460, 350, 81, 31))
-        self.dtc2.clicked.connect(lambda : self.get_dtc_state('02'))
+        self.dtc2.clicked.connect(lambda: self.get_dtc_state('02'))
 
         self.dtc3 = QtWidgets.QPushButton(self.centralwidget)
         self.dtc3.setGeometry(QtCore.QRect(460, 390, 81, 31))
-        self.dtc3.clicked.connect(lambda : self.get_dtc_state('03'))
+        self.dtc3.clicked.connect(lambda: self.get_dtc_state('03'))
 
         self.dtc4 = QtWidgets.QPushButton(self.centralwidget)
         self.dtc4.setGeometry(QtCore.QRect(460, 430, 81, 31))
-        self.dtc4.clicked.connect(lambda : self.get_dtc_state('04'))
-        
+        self.dtc4.clicked.connect(lambda: self.get_dtc_state('04'))
 
         self.dtc1_state = QtWidgets.QLabel(self.centralwidget)
         self.dtc1_state.setGeometry(QtCore.QRect(570, 315, 65, 20))
@@ -151,6 +140,9 @@ class Ui_MainWindow(object):
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
+
+        self.diag_mode_flag = False
+
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
@@ -176,8 +168,9 @@ class Ui_MainWindow(object):
         self.led3_state.setText(_translate("MainWindow", ""))
         self.connect.setText(_translate("MainWindow", "CONNECT"))
 
-############################### EXERCISE 0 ###############################
+
     def start_client(self):
+        global client
         self.diagMode.setEnabled(True)
         self.diagMode_off.setEnabled(False)
 
@@ -186,13 +179,11 @@ class Ui_MainWindow(object):
         self.dtc3.setEnabled(True)
         self.dtc4.setEnabled(True)
 
-
         self.set_led0.setText('Set LED0')
         self.set_led1.setText('Set LED1')
-        self.set_led2.setText('Set LED1')
+        self.set_led2.setText('Set LED2')
         self.set_led3.setText('Set LED3')
 
-    
         self.dtc1_state.setText('Unknown')
         self.dtc1_state.setStyleSheet('font:bold; color: blue;')
         self.dtc2_state.setText('Unknown')
@@ -201,100 +192,115 @@ class Ui_MainWindow(object):
         self.dtc3_state.setStyleSheet('font:bold; color: blue;')
         self.dtc4_state.setText('Unknown')
         self.dtc4_state.setStyleSheet('font:bold; color: blue;')
-        
-        self.set_led0.setText('Set LED0')
-        self.set_led1.setText('Set LED1')
-        self.set_led2.setText('Set LED2')
-        self.set_led3.setText('Set LED3')
 
         self.led0_state.setVisible(False)
         self.led1_state.setVisible(False)
         self.led2_state.setVisible(False)
         self.led3_state.setVisible(False)
-        ''' Complete with necessary code'''
 
 
-############################### EXERCISE 1 ###############################
-    def recv_handler(self,stop_event):
-        pass
+        try:
+            client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            client.connect((HOST, PORT))
+            self.connected_msg.setText("CONNECTED")
+            self.not_diag_mode.setVisible(True)
+            self.recv_messages()
+            self.connect.setEnabled(False)
+        except Exception as e:
+            print(f"Eroare la conectare: {e}")
+
+
+    def recv_handler(self, stop_event):
+        global client
+        while not stop_event.is_set():
+            try:
+                data = client.recv(1024).decode('utf-8')
+                if not data:
+                    break
+
+            except Exception:
+                break
 
     def recv_messages(self):
         self.stop_event = threading.Event()
-        self.c_thread=threading.Thread(target=self.recv_handler, args=(self.stop_event,))
+        self.c_thread = threading.Thread(target=self.recv_handler, args=(self.stop_event,))
+        self.c_thread.daemon = True
         self.c_thread.start()
 
     def diag(self):
-        pass
+        global client
+
+        try:
+            client.send(b'0x3E01')
+            self.diag_mode_flag = True
+            self.not_diag_mode.setText("IN DIAG MODE")
+            self.not_diag_mode.setStyleSheet("font: bold; color: green")
+            self.diagMode.setEnabled(False)
+            self.diagMode_off.setEnabled(True)
+        except Exception as e:
+            print(f"Eroare trimitere diag mode ON: {e}")
 
     def stop_diag(self):
+        global client
+        try:
+            client.send(b'0x3E00')
+            self.diag_mode_flag = False
+            self.not_diag_mode.setText("NOT IN DIAG MODE")
+            self.not_diag_mode.setStyleSheet("font: bold; color: red")
+            self.diagMode.setEnabled(True)
+            self.diagMode_off.setEnabled(False)
+        except Exception as e:
+            print(f"Eroare trimitere diag mode OFF: {e}")
+
+
+    def get_dtc_state(self, dtc_string):
+        pass
+
+    def set_dtc1_state(self, data_recv):
+        pass
+
+    def set_dtc2_state(self, data_recv):
+        pass
+
+    def set_dtc3_state(self, data_recv):
+        pass
+
+    def set_dtc4_state(self, data_recv):
         pass
 
 
-############################### EXERCISE 3 ###############################        
-    # READ DTC's
-    def get_dtc_state(self,dtc_string):
-        pass
-
-
-    # SET DTC1 State
-    def set_dtc1_state(self,data_recv):
-        pass
-
-    # SET DTC2 State
-    def set_dtc2_state(self,data_recv):
-        pass
-
-    # SET DTC3 State
-    def set_dtc3_state(self,data_recv):
-        pass
-
-    # SET DTC4 State
-    def set_dtc4_state(self,data_recv):
-        pass
-
-############################### EXERCISE 4 ###############################
-
-    # SET LED0
-    def set_led0_label(self,data_recv):
+    def set_led0_label(self, data_recv):
         pass
 
     def set_led0_flags(self):
         pass
 
-
-    # SET LED1
-    def set_led1_label(self,data_recv):
+    def set_led1_label(self, data_recv):
         pass
 
-  
     def set_led1_flags(self):
         pass
 
-
-    # SET LED2
-    def set_led2_label(self,data_recv):
+    def set_led2_label(self, data_recv):
         pass
-
 
     def set_led2_flags(self):
         pass
 
-
-    # SET LED3
-    def set_led3_label(self,data_recv):
+    def set_led3_label(self, data_recv):
         pass
 
     def set_led3_flags(self):
-        pass    
+        pass
 
-##########################################################################
+
 
 if __name__ == "__main__":
     import sys
+
     app = QtWidgets.QApplication(sys.argv)
     MainWindow = QtWidgets.QMainWindow()
     ui = Ui_MainWindow()
     ui.setupUi(MainWindow)
     MainWindow.show()
     sys.exit(app.exec_())
-
